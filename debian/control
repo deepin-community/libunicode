@@ -1,7 +1,7 @@
 Source: libunicode
 Priority: optional
 Maintainer: April Lu <apr3vau@outlook.com>
-Build-Depends: debhelper-compat (= 13), cmake, g++-13, catch2, librange-v3-dev
+Build-Depends: debhelper-compat (= 13), cmake, g++-13, catch2, librange-v3-dev, python3
 Standards-Version: 4.6.0
 Section: libs
 Homepage: https://github.com/contour-terminal/libunicode
