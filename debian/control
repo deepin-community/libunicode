@@ -1,15 +1,23 @@
-Source: template-repository
-Section: unknown
+Source: libunicode
 Priority: optional
-Maintainer: Tsic404 <liuheng@deepin.org>
-Build-Depends: debhelper (>= 11)
-Standards-Version: 4.1.3
-Homepage: https://github.com/deepin-community/template-repository
-#Vcs-Browser: https://salsa.debian.org/debian/deepin-community-template-repository
-#Vcs-Git: https://salsa.debian.org/debian/deepin-community-template-repository.git
+Maintainer: April Lu <apr3vau@outlook.com>
+Build-Depends: debhelper-compat (= 13), cmake, g++-13, catch2, librange-v3-dev
+Standards-Version: 4.6.0
+Section: libs
+Homepage: https://github.com/contour-terminal/libunicode
+Rules-Requires-Root: no
 
-Package: template-repository
+Package: libunicode-dev
+Section: libdevel
+Architecture: any
+Depends: libunicode0.6 (= ${binary:Version}), ${misc:Depends}
+Description: Modern C++20 Unicode library
+ The goal of this library is to bring painless unicode support to C++ with
+ simple and easy to understand APIs.
+
+Package: libunicode0.6
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: <insert up to 60 chars description>
- <insert long description, indented with spaces>
+Description: Modern C++20 Unicode library
+ The goal of this library is to bring painless unicode support to C++ with
+ simple and easy to understand APIs.

@@ -1,0 +1,1 @@
+extend-diff-ignore = (_ucd*|src/libunicode/codepoint_properties*|src/libunicode/ucd*|.github/*)
