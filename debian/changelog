@@ -1,3 +1,9 @@
+libunicode (0.6.0-1deepin2) unstable; urgency=medium
+
+  * Replace std::format with fmt library for gcc-12 compatibility.
+
+ -- lichenggang <lichenggang@uniontech.com>  Thu, 23 Apr 2026 10:22:23 +0800
+
 libunicode (0.6.0-1deepin1) unstable; urgency=medium
 
   * Remove hardcoded g++-13 compiler in debian/rules and Build-Depends.

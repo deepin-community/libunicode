@@ -1,0 +1,620 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ec7faaa..4fc0dbe 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -55,6 +55,7 @@ endif()
+ 
+ set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "Enable testing of the benchmark library." FORCE)
+ include(ThirdParties)
++find_package(fmt REQUIRED)
+ 
+ if(LIBUNICODE_TESTING)
+     enable_testing()
+diff --git a/src/libunicode/CMakeLists.txt b/src/libunicode/CMakeLists.txt
+index bb1a824..9a97143 100644
+--- a/src/libunicode/CMakeLists.txt
++++ b/src/libunicode/CMakeLists.txt
+@@ -61,6 +61,7 @@ set_target_properties(unicode_ucd PROPERTIES
+ )
+ target_include_directories(unicode_ucd PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+                                               $<INSTALL_INTERFACE:include>)
++target_link_libraries(unicode_ucd PUBLIC fmt::fmt)
+ 
+ # =========================================================================================================
+ 
+diff --git a/src/libunicode/capi_test.cpp b/src/libunicode/capi_test.cpp
+index 64f3071..ab4ac6a 100644
+--- a/src/libunicode/capi_test.cpp
++++ b/src/libunicode/capi_test.cpp
+@@ -16,7 +16,7 @@
+ #include <catch2/catch_test_macros.hpp>
+ 
+ #include <array>
+-#include <format>
++#include <fmt/format.h>
+ #include <utility>
+ 
+ using namespace std;
+diff --git a/src/libunicode/convert_test.cpp b/src/libunicode/convert_test.cpp
+index ab0da11..daa734e 100644
+--- a/src/libunicode/convert_test.cpp
++++ b/src/libunicode/convert_test.cpp
+@@ -17,7 +17,7 @@
+ 
+ #include <catch2/catch_test_macros.hpp>
+ 
+-#include <format>
++#include <fmt/format.h>
+ #include <iterator>
+ 
+ using namespace unicode;
+diff --git a/src/libunicode/emoji_segmenter.h b/src/libunicode/emoji_segmenter.h
+index 85b976b..cef1f7a 100644
+--- a/src/libunicode/emoji_segmenter.h
++++ b/src/libunicode/emoji_segmenter.h
+@@ -15,7 +15,7 @@
+ 
+ #include <libunicode/support.h>
+ 
+-#include <format>
++#include <fmt/format.h>
+ #include <ostream>
+ 
+ namespace unicode
+@@ -152,7 +152,7 @@ inline std::ostream& operator<<(std::ostream& os, EmojiSegmentationCategory valu
+ } // namespace unicode
+ 
+ template <>
+-struct std::formatter<unicode::PresentationStyle>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::PresentationStyle>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::PresentationStyle value, auto& ctx) const
+     {
+@@ -167,7 +167,7 @@ struct std::formatter<unicode::PresentationStyle>: std::formatter<std::string_vi
+ };
+ 
+ template <>
+-struct std::formatter<unicode::EmojiSegmentationCategory>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::EmojiSegmentationCategory>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::EmojiSegmentationCategory value, auto& ctx) const
+     {
+diff --git a/src/libunicode/emoji_segmenter_test.cpp b/src/libunicode/emoji_segmenter_test.cpp
+index 38fa5f7..4daae04 100644
+--- a/src/libunicode/emoji_segmenter_test.cpp
++++ b/src/libunicode/emoji_segmenter_test.cpp
+@@ -18,7 +18,7 @@
+ 
+ #include <catch2/catch_test_macros.hpp>
+ 
+-#include <format>
++#include <fmt/format.h>
+ 
+ using namespace unicode;
+ using namespace std::string_literals;
+@@ -46,14 +46,14 @@ void test_segments(int lineNo, std::vector<std::pair<std::u32string_view, Presen
+         i += text.size();
+     }
+ 
+-    INFO(std::format("Testing emoji segmentation from line {}: {}", lineNo, to_utf8(fullText)));
++    INFO(fmt::format("Testing emoji segmentation from line {}: {}", lineNo, to_utf8(fullText)));
+ 
+     size_t size {};
+     auto presentationStyle = PresentationStyle {};
+     auto segmenter = unicode::emoji_segmenter { fullText };
+     for (size_t i = 0; i < expectations.size(); ++i)
+     {
+-        INFO(std::format("run segmentation for part {}: \"{}\" to be {}",
++        INFO(fmt::format("run segmentation for part {}: \"{}\" to be {}",
+                          i,
+                          to_utf8(expectations[i].first),
+                          (unsigned) expectations[i].second));
+diff --git a/src/libunicode/mktables.py b/src/libunicode/mktables.py
+index 990460c..550f111 100755
+--- a/src/libunicode/mktables.py
++++ b/src/libunicode/mktables.py
+@@ -212,13 +212,13 @@ class EnumFmtWriter(EnumBuilder): # {{{
+         self.file.write('\n')
+         self.file.write('#include <libunicode/ucd_enums.h>\n')
+         self.file.write('\n')
+-        self.file.write('#include <format>\n')
++        self.file.write('#include <fmt/format.h>\n')
+         self.file.write('\n')
+ 
+     def begin(self, _enum_class, _first):
+         self.enum_class = 'unicode::' + _enum_class
+         self.file.write('template <>\n')
+-        self.file.write('struct std::formatter<{}>: std::formatter<std::string_view>\n{{\n'.format(self.enum_class))
++        self.file.write('struct fmt::formatter<{}>: fmt::formatter<std::string_view>\n{{\n'.format(self.enum_class))
+         self.file.write('    auto format({} value, auto& ctx) const\n'.format(self.enum_class))
+         self.file.write('    {\n')
+         self.file.write('        std::string_view name;\n')
+diff --git a/src/libunicode/scan_test.cpp b/src/libunicode/scan_test.cpp
+index 240e754..13ea045 100644
+--- a/src/libunicode/scan_test.cpp
++++ b/src/libunicode/scan_test.cpp
+@@ -17,7 +17,7 @@
+ 
+ #include <catch2/catch_test_macros.hpp>
+ 
+-#include <format>
++#include <fmt/format.h>
+ #include <string_view>
+ 
+ using std::string_view;
+@@ -51,11 +51,11 @@ std::string escape(uint8_t ch)
+         case '"': return "\\\"";
+         default:
+             if (ch < 0x20)
+-                return std::format("\\{:03o}", static_cast<uint8_t>(ch) & 0xFF);
++                return fmt::format("\\{:03o}", static_cast<uint8_t>(ch) & 0xFF);
+             else if (ch < 0x80)
+-                return std::format("{}", static_cast<char>(ch));
++                return fmt::format("{}", static_cast<char>(ch));
+             else
+-                return std::format("\\x{:02x}", static_cast<uint8_t>(ch) & 0xFF);
++                return fmt::format("\\x{:02x}", static_cast<uint8_t>(ch) & 0xFF);
+     }
+ }
+ 
+@@ -237,7 +237,7 @@ TEST_CASE("scan.any.ascii_complex_repeat")
+         auto const countSimple = ((i + 1) / 2) * 20;
+         auto const countComplex = (i / 2) * 2;
+ 
+-        INFO(std::format("i = {}, ascii# {}, complex# {}, count {}, actual {}, s = \"{}\"",
++        INFO(fmt::format("i = {}, ascii# {}, complex# {}, count {}, actual {}, s = \"{}\"",
+                          i,
+                          countSimple,
+                          countComplex,
+@@ -339,7 +339,7 @@ void testScanText(int lineNo,
+                   uint8_t stopByte,
+                   std::vector<std::u32string_view> const& analyzedGraphemeClusters)
+ {
+-    INFO(std::format("Testing scan segment from line {}: {} ({:02X})", lineNo, hex(expectation), stopByte));
++    INFO(fmt::format("Testing scan segment from line {}: {} ({:02X})", lineNo, hex(expectation), stopByte));
+     auto const maxColumnCount = 80;
+ 
+     std::string fullText;
+@@ -362,7 +362,7 @@ void testScanText(int lineNo,
+     auto const iMax = std::min(analyzedGraphemeClusters.size(), graphemeClusterCollector.output.size());
+     for (size_t i = 0; i < iMax; ++i)
+     {
+-        INFO(std::format("i: {}, lhs: {}, rhs: {}",
++        INFO(fmt::format("i: {}, lhs: {}, rhs: {}",
+                          i,
+                          u8(std::u32string_view(graphemeClusterCollector.output[i].data(),
+                                                 graphemeClusterCollector.output[i].size())),
+diff --git a/src/libunicode/ucd_fmt.h b/src/libunicode/ucd_fmt.h
+index 79ba407..7aeca67 100644
+--- a/src/libunicode/ucd_fmt.h
++++ b/src/libunicode/ucd_fmt.h
+@@ -15,10 +15,10 @@
+ 
+ #include <libunicode/ucd_enums.h>
+ 
+-#include <format>
++#include <fmt/format.h>
+ 
+ template <>
+-struct std::formatter<unicode::Plane>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Plane>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Plane value, auto& ctx) const
+     {
+@@ -40,7 +40,7 @@ struct std::formatter<unicode::Plane>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Age>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Age>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Age value, auto& ctx) const
+     {
+@@ -83,7 +83,7 @@ struct std::formatter<unicode::Age>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Bidi_Class>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Bidi_Class>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Bidi_Class value, auto& ctx) const
+     {
+@@ -121,7 +121,7 @@ struct std::formatter<unicode::Bidi_Class>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Bidi_Paired_Bracket_Type>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Bidi_Paired_Bracket_Type>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Bidi_Paired_Bracket_Type value, auto& ctx) const
+     {
+@@ -139,7 +139,7 @@ struct std::formatter<unicode::Bidi_Paired_Bracket_Type>: std::formatter<std::st
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Canonical_Combining_Class>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Canonical_Combining_Class>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Canonical_Combining_Class value, auto& ctx) const
+     {
+@@ -212,7 +212,7 @@ struct std::formatter<unicode::Canonical_Combining_Class>: std::formatter<std::s
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Decomposition_Type>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Decomposition_Type>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Decomposition_Type value, auto& ctx) const
+     {
+@@ -245,7 +245,7 @@ struct std::formatter<unicode::Decomposition_Type>: std::formatter<std::string_v
+ };
+ 
+ template <>
+-struct std::formatter<unicode::East_Asian_Width>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::East_Asian_Width>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::East_Asian_Width value, auto& ctx) const
+     {
+@@ -266,7 +266,7 @@ struct std::formatter<unicode::East_Asian_Width>: std::formatter<std::string_vie
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Grapheme_Cluster_Break>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Grapheme_Cluster_Break>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Grapheme_Cluster_Break value, auto& ctx) const
+     {
+@@ -300,7 +300,7 @@ struct std::formatter<unicode::Grapheme_Cluster_Break>: std::formatter<std::stri
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Hangul_Syllable_Type>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Hangul_Syllable_Type>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Hangul_Syllable_Type value, auto& ctx) const
+     {
+@@ -321,7 +321,7 @@ struct std::formatter<unicode::Hangul_Syllable_Type>: std::formatter<std::string
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Indic_Conjunct_Break>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Indic_Conjunct_Break>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Indic_Conjunct_Break value, auto& ctx) const
+     {
+@@ -340,7 +340,7 @@ struct std::formatter<unicode::Indic_Conjunct_Break>: std::formatter<std::string
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Indic_Positional_Category>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Indic_Positional_Category>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Indic_Positional_Category value, auto& ctx) const
+     {
+@@ -371,7 +371,7 @@ struct std::formatter<unicode::Indic_Positional_Category>: std::formatter<std::s
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Indic_Syllabic_Category>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Indic_Syllabic_Category>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Indic_Syllabic_Category value, auto& ctx) const
+     {
+@@ -423,7 +423,7 @@ struct std::formatter<unicode::Indic_Syllabic_Category>: std::formatter<std::str
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Jamo_Short_Name>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Jamo_Short_Name>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Jamo_Short_Name value, auto& ctx) const
+     {
+@@ -490,7 +490,7 @@ struct std::formatter<unicode::Jamo_Short_Name>: std::formatter<std::string_view
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Joining_Group>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Joining_Group>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Joining_Group value, auto& ctx) const
+     {
+@@ -610,7 +610,7 @@ struct std::formatter<unicode::Joining_Group>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Joining_Type>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Joining_Type>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Joining_Type value, auto& ctx) const
+     {
+@@ -631,7 +631,7 @@ struct std::formatter<unicode::Joining_Type>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Line_Break>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Line_Break>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Line_Break value, auto& ctx) const
+     {
+@@ -694,7 +694,7 @@ struct std::formatter<unicode::Line_Break>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::NFC_Quick_Check>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::NFC_Quick_Check>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::NFC_Quick_Check value, auto& ctx) const
+     {
+@@ -712,7 +712,7 @@ struct std::formatter<unicode::NFC_Quick_Check>: std::formatter<std::string_view
+ };
+ 
+ template <>
+-struct std::formatter<unicode::NFKC_Quick_Check>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::NFKC_Quick_Check>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::NFKC_Quick_Check value, auto& ctx) const
+     {
+@@ -730,7 +730,7 @@ struct std::formatter<unicode::NFKC_Quick_Check>: std::formatter<std::string_vie
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Numeric_Type>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Numeric_Type>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Numeric_Type value, auto& ctx) const
+     {
+@@ -749,7 +749,7 @@ struct std::formatter<unicode::Numeric_Type>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Sentence_Break>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Sentence_Break>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Sentence_Break value, auto& ctx) const
+     {
+@@ -779,7 +779,7 @@ struct std::formatter<unicode::Sentence_Break>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Vertical_Orientation>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Vertical_Orientation>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Vertical_Orientation value, auto& ctx) const
+     {
+@@ -798,7 +798,7 @@ struct std::formatter<unicode::Vertical_Orientation>: std::formatter<std::string
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Word_Break>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Word_Break>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Word_Break value, auto& ctx) const
+     {
+@@ -836,7 +836,7 @@ struct std::formatter<unicode::Word_Break>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Core_Property>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Core_Property>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Core_Property value, auto& ctx) const
+     {
+@@ -870,7 +870,7 @@ struct std::formatter<unicode::Core_Property>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::General_Category>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::General_Category>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::General_Category value, auto& ctx) const
+     {
+@@ -916,7 +916,7 @@ struct std::formatter<unicode::General_Category>: std::formatter<std::string_vie
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Script>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Script>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Script value, auto& ctx) const
+     {
+@@ -1103,7 +1103,7 @@ struct std::formatter<unicode::Script>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::Block>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::Block>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::Block value, auto& ctx) const
+     {
+@@ -1457,7 +1457,7 @@ struct std::formatter<unicode::Block>: std::formatter<std::string_view>
+ };
+ 
+ template <>
+-struct std::formatter<unicode::EastAsianWidth>: std::formatter<std::string_view>
++struct fmt::formatter<unicode::EastAsianWidth>: fmt::formatter<std::string_view>
+ {
+     auto format(unicode::EastAsianWidth value, auto& ctx) const
+     {
+diff --git a/src/libunicode/utf8_grapheme_segmenter_test.cpp b/src/libunicode/utf8_grapheme_segmenter_test.cpp
+index 9c048a6..03c649b 100644
+--- a/src/libunicode/utf8_grapheme_segmenter_test.cpp
++++ b/src/libunicode/utf8_grapheme_segmenter_test.cpp
+@@ -15,7 +15,7 @@
+ 
+ #include <catch2/catch_test_macros.hpp>
+ 
+-#include <format>
++#include <fmt/format.h>
+ #include <string_view>
+ 
+ using namespace std::string_literals;
+@@ -31,7 +31,7 @@ std::string escape(std::string const& s)
+         if (std::isprint(ch))
+             t += ch;
+         else
+-            t += std::format("\\x{:02X}", ((unsigned) ch) & 0xFF);
++            t += fmt::format("\\x{:02X}", ((unsigned) ch) & 0xFF);
+     return t;
+ }
+ 
+@@ -50,7 +50,7 @@ void test_utf8_grapheme_cluster_segmentation(Ts... expects)
+     };
+ 
+     auto const checkOne = [&](std::u32string_view expected) -> void {
+-        INFO(std::format("expects: {}, actual {}", s8(expected), s8(*i)));
++        INFO(fmt::format("expects: {}, actual {}", s8(expected), s8(*i)));
+         REQUIRE(s8(*i) == s8(expected));
+         REQUIRE(i != e);
+         ++i;
+diff --git a/src/libunicode/utf8_test.cpp b/src/libunicode/utf8_test.cpp
+index 51baf31..3caa68e 100644
+--- a/src/libunicode/utf8_test.cpp
++++ b/src/libunicode/utf8_test.cpp
+@@ -19,7 +19,7 @@
+ #include <array>
+ #include <cassert>
+ #include <cstdlib>
+-#include <format>
++#include <fmt/format.h>
+ #include <variant>
+ 
+ using namespace std;
+@@ -53,20 +53,20 @@ TEST_CASE("utf8.bytes_1", "[utf8]")
+     auto const r1 = from_utf8(state, C);
+     REQUIRE(holds_alternative<Success>(r1));
+     char32_t const b = get<Success>(r1).value;
+-    INFO(std::format("char32_t : 0x{:04X}", (unsigned) b));
++    INFO(fmt::format("char32_t : 0x{:04X}", (unsigned) b));
+     REQUIRE(b == C);
+ }
+ 
+ TEST_CASE("utf8.bytes_2", "[utf8]")
+ {
+     char32_t constexpr C { 0xF6 }; // 0xC3 0xB6, 'ö'
+-    INFO(std::format("codepoint : 0x{:04X}", (unsigned) C));
++    INFO(fmt::format("codepoint : 0x{:04X}", (unsigned) C));
+ 
+     // encode
+     uint8_t actual[2] = {};
+     auto const count = to_utf8(C, actual);
+-    INFO(std::format("utf8      : {:X} {:X}", actual[0], actual[1]));
+-    INFO(std::format("binary    : {} {}", binstr(actual[0]), binstr(actual[1])));
++    INFO(fmt::format("utf8      : {:X} {:X}", actual[0], actual[1]));
++    INFO(fmt::format("binary    : {} {}", binstr(actual[0]), binstr(actual[1])));
+     REQUIRE(count == 2);
+     CHECK(actual[0] == 0xC3);
+     CHECK(actual[1] == 0xB6);
+@@ -76,7 +76,7 @@ TEST_CASE("utf8.bytes_2", "[utf8]")
+     auto const a = from_utf8(actual, &len);
+     REQUIRE(holds_alternative<Success>(a));
+     char32_t b = get<Success>(a).value;
+-    INFO(std::format("char32_t : 0x{:04X} ==? 0x{:04X}", (unsigned) b, (unsigned) C));
++    INFO(fmt::format("char32_t : 0x{:04X} ==? 0x{:04X}", (unsigned) b, (unsigned) C));
+     REQUIRE(b == C);
+ }
+ 
+@@ -90,15 +90,15 @@ TEST_CASE("utf8.bytes_3", "[utf8]")
+     CHECK(b3[1] == 0x82);
+     CHECK(b3[2] == 0xAC);
+ 
+-    INFO(std::format("{:02X} {:02X} {:02X}", b3[0], b3[1], b3[2]));
+-    INFO(std::format("{} {} {}", binstr(b3[0]), binstr(b3[1]), binstr(b3[2])));
++    INFO(fmt::format("{:02X} {:02X} {:02X}", b3[0], b3[1], b3[2]));
++    INFO(fmt::format("{} {} {}", binstr(b3[0]), binstr(b3[1]), binstr(b3[2])));
+ 
+     // decode
+     size_t len = 0;
+     auto const a = from_utf8(b3, &len);
+     REQUIRE(holds_alternative<Success>(a));
+     char32_t const b = get<Success>(a).value;
+-    INFO(std::format("char32_t : 0x{:04X}", (unsigned) b));
++    INFO(fmt::format("char32_t : 0x{:04X}", (unsigned) b));
+     REQUIRE(b == 0x20AC);
+ }
+ 
+@@ -113,8 +113,8 @@ TEST_CASE("utf8.bytes_3_dash", "[utf8]")
+     CHECK(d3[1] == 0x94);
+     CHECK(d3[2] == 0x9C);
+ 
+-    INFO(std::format("{:02X} {:02X} {:02X}", d3[0], d3[1], d3[2]));
+-    INFO(std::format("{} {} {}", binstr(d3[0]), binstr(d3[1]), binstr(d3[2])));
++    INFO(fmt::format("{:02X} {:02X} {:02X}", d3[0], d3[1], d3[2]));
++    INFO(fmt::format("{} {} {}", binstr(d3[0]), binstr(d3[1]), binstr(d3[2])));
+ 
+     // decode
+     auto constexpr u8s = array<uint8_t, 4> { 0xe2, 0x94, 0x9c, 0x61 /*a*/ };
+diff --git a/src/tools/uc-inspect.cpp b/src/tools/uc-inspect.cpp
+index 1ad3157..d971356 100644
+--- a/src/tools/uc-inspect.cpp
++++ b/src/tools/uc-inspect.cpp
+@@ -21,7 +21,7 @@
+ #include <libunicode/width.h>
+ 
+ #include <array>
+-#include <format>
++#include <fmt/format.h>
+ #include <fstream>
+ #include <iomanip>
+ #include <iostream>
+@@ -91,9 +91,9 @@ inline string escape(uint8_t ch)
+         case '"': return "\\\"";
+         default:
+             if (std::isprint(static_cast<char>(ch)))
+-                return std::format("{}", static_cast<char>(ch));
++                return fmt::format("{}", static_cast<char>(ch));
+             else
+-                return std::format("\\x{:02X}", static_cast<uint8_t>(ch) & 0xFF);
++                return fmt::format("\\x{:02X}", static_cast<uint8_t>(ch) & 0xFF);
+     }
+ }
+ 
+@@ -152,7 +152,7 @@ void codepoints(istream& in) // {{{
+             {
+                 string const u8 = escape(unicode::to_utf8(wc));
+ 
+-                cout << std::format("{:>3}: U+{:08X} [{}] [{:<10}] {} width:{} UTF8:{}\n",
++                cout << fmt::format("{:>3}: U+{:08X} [{}] [{:<10}] {} width:{} UTF8:{}\n",
+                                     lastOffset,
+                                     static_cast<uint32_t>(wc),
+                                     isEmoji(wc) ? "EMOJI" : "TEXT ",
+@@ -183,7 +183,7 @@ string scriptExtensionsString(char32_t codepoint)
+     {
+         if (i)
+             sstr << ", ";
+-        sstr << std::format("{}", scripts[i]);
++        sstr << fmt::format("{}", scripts[i]);
+     }
+     return sstr.str();
+ }
+@@ -202,11 +202,11 @@ int scripts(istream& in) // {{{
+     cout << "   INDEX     CODEPOINT    TEXT  WIDTH   SCRIPT          SCRIPT EXTS\n";
+     while (segmenter.consume(out(nextPosition), out(script)))
+     {
+-        cout << std::format("{}-{}: {}\n", frontPosition, nextPosition - 1, script);
++        cout << fmt::format("{}-{}: {}\n", frontPosition, nextPosition - 1, script);
+         for (size_t i = frontPosition; i < nextPosition; ++i)
+         {
+             auto const cp = codepoints[i];
+-            cout << std::format("    {:>04}:    U+{:08X}   {}\t∆ {}\t{:<12}\t({})\n",
++            cout << fmt::format("    {:>04}:    U+{:08X}   {}\t∆ {}\t{:<12}\t({})\n",
+                                 i,
+                                 unsigned(cp),
+                                 convert_to<char>(cp),
+@@ -233,7 +233,7 @@ int runs(istream& in) // {{{
+         auto const script = get<unicode::Script>(run.properties);
+         auto const presentationStyle = get<unicode::PresentationStyle>(run.properties);
+ 
+-        cout << std::format("{}-{} ({}): {} {}\n", run.start, run.end - 1, run.end - run.start, script, presentationStyle);
++        cout << fmt::format("{}-{} ({}): {} {}\n", run.start, run.end - 1, run.end - run.start, script, presentationStyle);
+         auto const text32 = u32string_view(codepoints.data() + run.start, run.end - run.start);
+         auto const text8 = convert_to<char>(text32);
+         auto const textEscaped = replaceAll("\033"sv, "\\033"sv, string_view(text8));
+@@ -313,7 +313,7 @@ int main(int argc, char const* argv[])
+     }
+     catch (std::exception const& e)
+     {
+-        std::cerr << std::format("Unhandled exception caught ({}). {}\n", typeid(e).name(), e.what());
++        std::cerr << fmt::format("Unhandled exception caught ({}). {}\n", typeid(e).name(), e.what());
+         return EXIT_FAILURE;
+     }
+     catch (...)
