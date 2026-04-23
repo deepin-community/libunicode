@@ -1,3 +1,9 @@
+libunicode (0.6.0-1deepin1) unstable; urgency=medium
+
+  * Remove hardcoded g++-13 compiler in debian/rules and Build-Depends.
+
+ -- lichenggang <lichenggang@uniontech.com>  Thu, 23 Apr 2026 10:09:12 +0800
+
 libunicode (0.6.0-1) unstable; urgency=medium
 
   * Initial release
